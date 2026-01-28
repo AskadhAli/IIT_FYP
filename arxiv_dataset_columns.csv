@@ -1,0 +1,15 @@
+column_name,data_type,non_null_count,null_count
+id,float64,1000,0
+submitter,object,1000,0
+authors,object,1000,0
+title,object,1000,0
+comments,object,901,99
+journal-ref,object,573,427
+doi,object,663,337
+report-no,object,78,922
+categories,object,1000,0
+license,object,61,939
+abstract,object,1000,0
+versions,object,1000,0
+update_date,object,1000,0
+authors_parsed,object,1000,0
