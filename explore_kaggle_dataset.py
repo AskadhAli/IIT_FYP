@@ -12,7 +12,7 @@ path = kagglehub.dataset_download("Cornell-University/arxiv")
 
 print(f"\n[OK] Dataset path: {path}")
 
-# List all files in the dataset
+# List all files we want to load in the dataset
 print("\n" + "="*60)
 print("Files in the dataset:")
 print("="*60)
