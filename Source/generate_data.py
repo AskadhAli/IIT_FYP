@@ -1,4 +1,4 @@
-import pandas as pd
+﻿import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
@@ -127,10 +127,10 @@ numeric_cols = output_df.select_dtypes(include=[np.number]).columns
 output_df[numeric_cols] = output_df[numeric_cols].round(2)
 
 # Save to Excel
-output_df.to_excel('knowledge_garden_demo_v2.xlsx', index=False, engine='openpyxl')
+output_df.to_excel('Dataset/knowledge_garden_demo_v2.xlsx', index=False, engine='openpyxl')
 print(f"✅ Generated {N} realistic documents")
 print(f"📊 Prune score distribution:")
 print(output_df['prune_score'].describe())
 print(f"\n📈 Risk level distribution:")
 print(output_df['risk_level'].value_counts())
-print(f"\n💾 Saved to: knowledge_garden_demo_v2.xlsx")
+print(f"\n💾 Saved to: Dataset/knowledge_garden_demo_v2.xlsx")

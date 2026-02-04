@@ -123,7 +123,7 @@ This will:
 
 ## 🚀 Next Steps
 
-1. Run the Streamlit app: `streamlit run app.py`
+1. Run the Streamlit app: `streamlit run Source/app.py`
 2. Adjust `ARXIV_SAMPLE_SIZE` based on performance needs
 3. Fine-tune simulation parameters in `load_arxiv_data.py` if needed
 4. Consider adding real citation data from external APIs (e.g., Semantic Scholar)

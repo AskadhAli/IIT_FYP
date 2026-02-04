@@ -1,4 +1,4 @@
-import kagglehub
+﻿import kagglehub
 import pandas as pd
 import os
 import json
@@ -116,7 +116,7 @@ else:
                 'sample_data': df.head(3).to_dict('records')
             }
             
-            output_file = 'arxiv_dataset_columns.json'
+            output_file = 'Dataset/arxiv_dataset_columns.json'
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(col_info, f, indent=2, default=str)
             print(f"\n   [OK] Column information saved to '{output_file}'")
@@ -128,7 +128,7 @@ else:
                 'non_null_count': [df[col].notna().sum() for col in df.columns],
                 'null_count': [df[col].isna().sum() for col in df.columns]
             })
-            col_csv = 'arxiv_dataset_columns.csv'
+            col_csv = 'Dataset/arxiv_dataset_columns.csv'
             col_df.to_csv(col_csv, index=False)
             print(f"   [OK] Column list saved to '{col_csv}'")
             
@@ -144,3 +144,4 @@ else:
 print("\n" + "="*60)
 print("[OK] Exploration complete!")
 print("="*60)
+
