@@ -91,7 +91,12 @@ def concordance_index(durations, events, risk_scores, max_sample=CINDEX_MAX_SAMP
     risk_j = risk_scores[None, :]
     evt_j  = events[None, :]
 
-    valid = (dur_i < dur_j) | ((dur_i == dur_j) & (evt_j == 0))
+    # A comparable pair requires i had an observed event (already enforced by
+    # event_idx) and either j's duration is strictly later, or durations tie
+    # and j is censored OR both had events.  The original mask excluded tied-
+    # duration pairs where both subjects had events, undercounting the
+    # denominator and inflating the C-index.
+    valid = (dur_i < dur_j) | (dur_i == dur_j)
 
     concordant = int(np.sum(valid & (risk_i > risk_j)))
     tied       = int(np.sum(valid & (risk_i == risk_j)))
@@ -131,8 +136,14 @@ def _km_censoring_survival(durations, events):
     times  = np.array(times)
     survs  = np.array(survs)
 
-    def G(t):
-        idx = np.searchsorted(times, t, side="right") - 1
+    def G(t, left_continuous=False):
+        # IPCW for subjects' own event times requires G(T_i-) — the left-
+        # continuous version (survival just before T_i).  For the fixed time-
+        # point weight G(t) used in the survival-past-t branch, the right-
+        # continuous version is correct.  Pass left_continuous=True to get
+        # G(T_i-) when computing per-subject IPCW weights.
+        side = "left" if left_continuous else "right"
+        idx = np.searchsorted(times, t, side=side) - 1
         if idx < 0:
             return 1.0
         return max(survs[idx], 1e-6)  # floor to avoid division by zero
@@ -172,8 +183,10 @@ def integrated_brier_score(durations, events, pred_log_durations, n_time_points=
         bs = 0.0
         for i in range(n):
             if durations[i] <= t and events[i] == 1:
-                # Subject failed before t: I(T_i <= t, delta_i=1) / G(T_i)
-                w = 1.0 / G(durations[i])
+                # Subject failed before t: IPCW weight = 1 / G(T_i-).
+                # Use left-continuous G so we evaluate survival just before
+                # T_i, not after any censoring events at the same time point.
+                w = 1.0 / G(durations[i], left_continuous=True)
                 bs += w * (0.0 - survival_pred[i]) ** 2
             elif durations[i] > t:
                 # Subject survived past t (or censored after t): / G(t)
@@ -283,7 +296,7 @@ def _cox_nll(beta, X, durations, events):
 
     ll = (
         np.sum(lr_o[event_mask])
-        - np.sum(np.log(risk_set_sum[event_mask] + 1e-12))
+        - np.sum(np.log(np.maximum(risk_set_sum[event_mask], 1e-12)))
         - shift * n_events
     )
     return -ll
@@ -550,9 +563,13 @@ def predict_on_dataframe(df, model_bundle):
     w_cox, w_gbm = 0.35, 0.65
     combined = w_cox * norm(cox_risk) + w_gbm * norm(gbm_risk)
 
-    # Apply the same direction correction decided at training time
+    # Apply the same direction correction decided at training time.
+    # combined is already in [0, 1] (weighted sum of two normalised scores),
+    # so no re-normalisation is needed here.  The original code called
+    # norm(combined) again, which re-anchored the range to the inference
+    # batch and caused single-record calls to always return prune score 0.0.
     if model_bundle.get("direction_inverted", False):
-        combined = 1.0 - norm(combined)
+        combined = 1.0 - combined
 
     prune_scores = risk_to_prune_score(combined)
     shelf_life   = prune_to_shelf_life(prune_scores)
@@ -629,7 +646,11 @@ def generate_demo_data(n=50_000, seed=RANDOM_STATE):
     ]
 
     pub_year         = rng.integers(2012, 2025, n)
-    days_since_added = rng.exponential(400, n).clip(0, 1095).astype(int)
+    # Clip lower bound to 1 (not 0) so that days_since_added is always >= 1.
+    # If 0 were allowed, the subsequent clip(1, days_since_added) call would
+    # become clip(min=1, max=0) which is undefined in NumPy and produces 0,
+    # corrupting last_access_days and the downstream survival targets.
+    days_since_added = rng.exponential(400, n).clip(1, 1095).astype(int)
     last_access_days = (
         days_since_added * 0.3 + rng.exponential(60, n)
     ).clip(1, days_since_added).astype(int)
